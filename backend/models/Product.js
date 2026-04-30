@@ -21,6 +21,15 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    images: [{
+        type: String
+    }],
+    videoUrl: {
+        type: String
+    },
+    modelUrl: {
+        type: String
+    },
     artisan: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -39,6 +48,10 @@ const productSchema = new mongoose.Schema({
         carbon: { type: Number, default: 0 },
         recycling: { type: Number, default: 0 },
         total: { type: Number, default: 0 }
+    },
+    transparency: {
+        materialCost: { type: Number, default: 0 },
+        laborCost: { type: Number, default: 0 }
     },
     likes: [{
         type: mongoose.Schema.Types.ObjectId,

@@ -85,7 +85,7 @@ const ProductCard = ({ product }) => {
                 </div>
 
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
-                    <span className="text-xl font-extrabold text-[#3E2723]">${product.price}</span>
+                    <span className="text-xl font-extrabold text-[#3E2723]">₹{product.price}</span>
                     <button
                         onClick={() => addToCart(product)}
                         className="btn-primary py-2.5 px-5 text-sm"

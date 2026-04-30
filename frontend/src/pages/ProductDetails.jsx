@@ -1,17 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import { Star, ShoppingCart, Heart, ArrowLeft, Truck, ShieldCheck, Leaf, MessageCircle, Send, Sparkles, Box, Image as ImageIcon, Camera, Volume2, VolumeX, ArrowRight, X, Search, ListChecks, Check, Trash2 } from 'lucide-react';
+import { Star, ShoppingCart, Heart, ArrowLeft, Truck, ShieldCheck, Leaf, MessageCircle, Send, Sparkles, Box, Image as ImageIcon, Camera, Volume2, VolumeX, ArrowRight, X, Search, ListChecks, Check, Trash2, Video } from 'lucide-react';
 import ReviewSection from '../components/ReviewSection';
-import ARViewer from '../components/ARViewer';
-import RoomVisualizer from '../components/RoomVisualizer';
+import ModelViewer from '../components/ModelViewer';
+import TransparencyWidget from '../components/TransparencyWidget';
+import CommissionModal from '../components/CommissionModal';
 
 const ProductDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [product, setProduct] = useState(null);
+    const [activeMedia, setActiveMedia] = useState(0);
     const [loading, setLoading] = useState(true);
     const { addToCart } = useCart();
     const { user } = useAuth();
@@ -21,8 +24,8 @@ const ProductDetails = () => {
     const [isFollowing, setIsFollowing] = useState(false);
     const [followersCount, setFollowersCount] = useState(0);
     const [recommendations, setRecommendations] = useState([]);
-    const [viewMode, setViewMode] = useState('photo'); // 'photo' or '3d'
     const [showAuthenticityModal, setShowAuthenticityModal] = useState(false);
+    const [showCommissionModal, setShowCommissionModal] = useState(false);
     const [qaQuestion, setQaQuestion] = useState('');
     const [qaHistory, setQaHistory] = useState([]);
     const [qaLoading, setQaLoading] = useState(false);
@@ -57,13 +60,18 @@ const ProductDetails = () => {
                 console.error("Error fetching product", error);
                 setProduct({
                     _id: id,
-                    name: "Handcrafted Demo Item",
-                    description: "This is a placeholder for when the backend product is not found or API fails. It represents a high-quality handmade item.",
-                    price: 45.00,
-                    imageUrl: "https://picsum.photos/seed/details/600/600",
-                    category: "Art",
+                    name: "Authentic Banarasi Saree",
+                    description: "This is a fallback placeholder. Displaying our handcrafted Banarasi Saree with intricate golden zari aesthetics.",
+                    price: 8500.00,
+                    imageUrl: "/images/banarasi_saree.png",
+                    images: [
+                        "/images/blue_pottery.png",
+                        "/images/dhokra_elephant.png"
+                    ],
+                    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+                    category: "Textiles",
                     stock: 5,
-                    artisan: { name: "Creative Soul" }
+                    artisan: { name: "Meera Textiles" }
                 });
             } finally {
                 setLoading(false);
@@ -246,6 +254,26 @@ const ProductDetails = () => {
         }
     };
 
+    const mediaItems = [];
+    if (product) {
+        if (product.imageUrl) mediaItems.push({ type: 'image', url: product.imageUrl });
+        if (product.images && product.images.length > 0) {
+            product.images.forEach(img => mediaItems.push({ type: 'image', url: img }));
+        }
+        if (product.videoUrl) mediaItems.push({ type: 'video', url: product.videoUrl });
+        if (product.modelUrl) mediaItems.push({ type: '3d', url: product.modelUrl });
+    }
+
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        if (queryParams.get('viewMode') === '3d' && mediaItems.length > 0) {
+            const threeDIndex = mediaItems.findIndex(item => item.type === '3d');
+            if (threeDIndex !== -1) {
+                setActiveMedia(threeDIndex);
+            }
+        }
+    }, [location.search, mediaItems.length]);
+
     if (loading) return <div className="text-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div></div>;
     if (!product) return <div className="text-center py-20">Product not found</div>;
 
@@ -258,39 +286,96 @@ const ProductDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 {/* Visual Gallery */}
                 <div className="space-y-4">
-                    <div className="flex bg-[#EFEBE9] p-1.5 rounded-2xl w-max mx-auto md:mx-0 shadow-inner mb-4 overflow-x-auto max-w-full custom-scrollbar">
-                        <button
-                            onClick={() => setViewMode('photo')}
-                            className={`flex-shrink-0 flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${viewMode === 'photo' ? 'bg-white text-[#3E2723] shadow-sm' : 'text-[#8D6E63] hover:text-[#3E2723]'}`}
-                        >
-                            <ImageIcon className="w-4 h-4" /> Photo
-                        </button>
-                        <button
-                            onClick={() => setViewMode('3d')}
-                            className={`flex-shrink-0 flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${viewMode === '3d' ? 'bg-[#3E2723] text-white shadow-md' : 'text-[#8D6E63] hover:text-[#3E2723]'}`}
-                        >
-                            <Box className="w-4 h-4" /> 3D AR Preview
-                        </button>
-                        <button
-                            onClick={() => setViewMode('room')}
-                            className={`flex-shrink-0 flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-sm transition-all ${viewMode === 'room' ? 'bg-[#3E2723] text-white shadow-md' : 'text-[#8D6E63] hover:text-[#3E2723]'}`}
-                        >
-                            <Camera className="w-4 h-4" /> See in Your Room
-                        </button>
+                    <div className="aspect-square rounded-3xl overflow-hidden bg-gray-100 shadow-lg border border-gray-200 group relative">
+                        {mediaItems.length > 0 && mediaItems[activeMedia]?.type === 'video' ? (
+                            mediaItems[activeMedia].url.includes('youtube.com') || mediaItems[activeMedia].url.includes('youtu.be') ? (
+                                <iframe 
+                                    className="w-full h-full object-cover"
+                                    src={(() => {
+                                        const url = mediaItems[activeMedia].url;
+                                        if (url.includes('embed/')) return url;
+                                        let videoId = '';
+                                        if (url.includes('v=')) {
+                                            videoId = url.split('v=')[1].split('&')[0];
+                                        } else if (url.includes('youtu.be/')) {
+                                            videoId = url.split('youtu.be/')[1].split('?')[0];
+                                        } else {
+                                            const matches = url.match(/(?:\/v\/|shorts\/|embed\/|youtu\.be\/|\/watch\?v=|\/watch\?.+&v=)([^#&?]*)/);
+                                            if (matches && matches[1]) videoId = matches[1];
+                                        }
+                                        return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+                                    })()}
+                                    title="YouTube video player"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                ></iframe>
+                            ) : (
+                                <video 
+                                    src={mediaItems[activeMedia].url} 
+                                    className="w-full h-full object-cover"
+                                    autoPlay 
+                                    loop 
+                                    muted 
+                                    controls
+                                />
+                            )
+                        ) : mediaItems.length > 0 && mediaItems[activeMedia]?.type === '3d' ? (
+                            <ModelViewer modelUrl={mediaItems[activeMedia].url} />
+                        ) : (
+                            <img 
+                                src={mediaItems.length > 0 ? mediaItems[activeMedia].url : 'https://picsum.photos/seed/placeholder/600/600'} 
+                                alt={product?.name} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
+                            />
+                        )}
+                        {mediaItems.length > 0 && mediaItems[activeMedia]?.type === 'video' && (
+                            <div className="absolute top-4 left-4 bg-black/50 backdrop-blur text-white text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5">
+                                <Video className="w-3.5 h-3.5" /> Artisan Video
+                            </div>
+                        )}
                     </div>
-
-                    {viewMode === 'photo' && (
-                        <div className="aspect-square rounded-3xl overflow-hidden bg-gray-100 shadow-lg border border-gray-200 group">
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                    {/* Thumbnails */}
+                    {mediaItems.length > 1 && (
+                        <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                            {mediaItems.map((media, idx) => (
+                                <button 
+                                    key={idx}
+                                    onClick={() => setActiveMedia(idx)}
+                                    className={`relative shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${activeMedia === idx ? 'border-[#3E2723] shadow-md scale-105' : 'border-transparent opacity-70 hover:opacity-100'}`}
+                                >
+                                    {media.type === 'video' ? (
+                                        <>
+                                            <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10 transition-colors hover:bg-black/10">
+                                                <div className="bg-white/90 p-1.5 rounded-full shadow-sm">
+                                                    <Video className="w-5 h-5 text-[#3E2723]" />
+                                                </div>
+                                            </div>
+                                            {media.url && (media.url.includes('youtube.com') || media.url.includes('youtu.be')) ? (
+                                                <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                                                    <Video className="w-6 h-6 text-white/50" />
+                                                </div>
+                                            ) : (
+                                                <video src={media.url} className="w-full h-full object-cover" />
+                                            )}
+                                        </>
+                                    ) : media.type === '3d' ? (
+                                        <>
+                                            <div className="absolute inset-0 bg-[#EFEBE9]/80 flex items-center justify-center z-10 transition-colors hover:bg-[#EFEBE9]/60">
+                                                <div className="bg-white/90 p-1.5 rounded-full shadow-sm">
+                                                    <Box className="w-5 h-5 text-[#3E2723]" />
+                                                </div>
+                                            </div>
+                                            <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                                                <Box className="w-6 h-6 text-gray-400" />
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <img src={media.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                                    )}
+                                </button>
+                            ))}
                         </div>
-                    )}
-                    {viewMode === '3d' && (
-                        <div className="aspect-square w-full rounded-3xl overflow-hidden shadow-lg border border-gray-200">
-                            <ARViewer category={product.category} />
-                        </div>
-                    )}
-                    {viewMode === 'room' && (
-                        <RoomVisualizer productImageUrl={product.imageUrl} />
                     )}
                 </div>
 
@@ -310,14 +395,14 @@ const ProductDetails = () => {
                                         {isFollowing ? 'Following' : 'Follow'}
                                     </button>
                                 )}
-                                {product.artisan && (
-                                    <Link
-                                        to={`/live/${product.artisan._id}`}
-                                        className="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700 hover:bg-red-200 flex items-center gap-1 transition-colors ml-2 shadow-sm"
+                                {product.artisan && product.artisan._id !== user?._id && (
+                                    <button
+                                        onClick={() => setShowCommissionModal(true)}
+                                        className="text-xs px-3 py-1 rounded-full font-bold transition-all bg-amber-100 text-amber-800 hover:bg-amber-200 shadow-sm border border-amber-200/50 flex items-center gap-1.5 ml-2"
                                     >
-                                        <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
-                                        Watch Live Studio
-                                    </Link>
+                                        <Sparkles className="w-3 h-3" />
+                                        Request Commission
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -340,7 +425,7 @@ const ProductDetails = () => {
                         )}
                         <h1 className="text-4xl lg:text-5xl font-extrabold text-[#3E2723] mb-4 tracking-tight">{product.name}</h1>
                         <div className="flex items-center space-x-4">
-                            <span className="text-3xl font-extrabold text-[#3E2723]">${product.price}</span>
+                            <span className="text-3xl font-extrabold text-[#3E2723]">₹{product.price}</span>
                             <div className="flex items-center bg-[#EFEBE9] px-2 py-1 rounded-lg border border-[#D7CCC8]/50">
                                 <Star className={`w-5 h-5 ${(product.rating && product.rating > 0) ? 'fill-yellow-400 text-yellow-500' : 'text-gray-300'}`} />
                                 <span className="ml-1 text-[#3E2723] font-bold">
@@ -349,6 +434,8 @@ const ProductDetails = () => {
                                 </span>
                             </div>
                         </div>
+                        
+                        <TransparencyWidget price={product.price} transparency={product.transparency} />
                     </div>
 
                     <p className="text-slate-600 text-lg leading-relaxed">
@@ -384,7 +471,7 @@ const ProductDetails = () => {
                     <div className="grid grid-cols-2 gap-4 text-sm text-[#8D6E63]">
                         <div className="flex items-center gap-2 p-3 bg-[#EFEBE9] rounded-xl border border-[#D7CCC8]/50 text-[#3E2723] font-bold shadow-sm">
                             <Truck className="w-5 h-5" />
-                            <span>Free Shipping over $50</span>
+                            <span>Free Shipping over ₹1000</span>
                         </div>
                         <div className="flex items-center gap-2 p-3 bg-[#EFEBE9] rounded-xl border border-[#D7CCC8]/50 text-[#3E2723] font-bold shadow-sm">
                             <ShieldCheck className="w-5 h-5" />
@@ -564,7 +651,7 @@ const ProductDetails = () => {
                                 <div className="p-6">
                                     <h3 className="font-bold text-[#3E2723] text-lg mb-2 truncate group-hover:text-purple-700 transition-colors">{rec.name}</h3>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-xl font-extrabold text-[#3E2723]">${rec.price}</span>
+                                        <span className="text-xl font-extrabold text-[#3E2723]">₹{rec.price}</span>
                                         <button className="bg-[#EFEBE9] text-[#3E2723] p-2.5 rounded-xl group-hover:bg-[#3E2723] group-hover:text-white transition-colors shadow-sm">
                                             <ShoppingCart className="w-5 h-5" />
                                         </button>
@@ -656,7 +743,6 @@ const ProductDetails = () => {
                     </div>
                 </div>
             )}
-        </div>
 
             {/* AI Product Q&A Panel */}
             <div className="mt-10 max-w-3xl mx-auto px-4 pb-12">
@@ -727,6 +813,11 @@ const ProductDetails = () => {
                     </div>
                 </div>
             </div>
+            <CommissionModal 
+                isOpen={showCommissionModal} 
+                onClose={() => setShowCommissionModal(false)} 
+                artisan={product.artisan} 
+            />
         </div>
     );
 };

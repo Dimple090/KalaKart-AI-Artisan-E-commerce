@@ -96,7 +96,7 @@ const Cart = () => {
                                 <div className="flex-1 text-center sm:text-left">
                                     <h3 className="text-lg font-bold text-[#3E2723]">{item.name}</h3>
                                     <p className="text-sm text-[#8D6E63]">{item.category}</p>
-                                    <p className="text-[#3E2723] font-bold mt-1">${item.price}</p>
+                                    <p className="text-[#3E2723] font-bold mt-1">₹{item.price}</p>
                                 </div>
 
                                 <div className="flex items-center gap-4">

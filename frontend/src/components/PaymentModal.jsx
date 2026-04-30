@@ -43,6 +43,10 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
                 throw new Error("Razorpay SDK failed to load. Are you online?");
             }
 
+            // 0. Fetch securely the Razorpay public key
+            const { data: configData } = await axios.get('http://localhost:5000/api/payment/config');
+            const razorpayKey = configData.keyId;
+
             // 1. Create Order
             const config = {
                 headers: {
@@ -52,13 +56,26 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
 
             const { data: order } = await axios.post(
                 'http://localhost:5000/api/payment/order',
-                { amount: totalAmount },
+                { 
+                    amount: totalAmount,
+                    orderItems: cartItems.map(item => ({
+                        product: item._id,
+                        quantity: item.qty,
+                        price: item.price
+                    })),
+                    shippingAddress: {
+                        address: "123 Artisan Street", // Mock for demo
+                        city: "Jaipur",
+                        postalCode: "302001",
+                        country: "India"
+                    }
+                },
                 config
             );
 
             // 2. Open Razorpay Options
             const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID, // Frontend key
+                key: razorpayKey, // Fetched securely from backend
                 amount: order.amount,
                 currency: order.currency,
                 name: "KalaKart Web App",

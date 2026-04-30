@@ -8,10 +8,24 @@ const errorHandler = (err, req, res, next) => {
     let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
     let message = err.message;
 
-    // If Mongoose not found error, set to 404 and change message
-    if (err.name === 'CastError' && err.kind === 'ObjectId') {
+    // Handle Mongoose Validation Errors
+    if (err.name === 'ValidationError') {
+        statusCode = 400;
+        const messages = Object.values(err.errors)
+            .map(e => e.message)
+            .join(', ');
+        message = messages || 'Validation Error';
+    }
+    // Handle Mongoose Cast (ObjectId) Errors
+    else if (err.name === 'CastError' && err.kind === 'ObjectId') {
         statusCode = 404;
         message = 'Resource not found';
+    }
+    // Handle Mongoose Duplicate Key Error
+    else if (err.code === 11000) {
+        statusCode = 400;
+        const field = Object.keys(err.keyPattern)[0];
+        message = `${field} already exists`;
     }
 
     console.error(`[API ERROR] ${req.method} ${req.originalUrl} >>`, message, err.stack);

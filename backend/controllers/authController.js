@@ -1,6 +1,12 @@
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
 
+// Email validation regex
+const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+};
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -8,18 +14,37 @@ const registerUser = async (req, res, next) => {
     const { name, email, password, role } = req.body;
 
     try {
-        const userExists = await User.findOne({ email });
+        // Input validation
+        if (!name || !email || !password) {
+            res.status(400);
+            throw new Error('Please provide all required fields: name, email, password');
+        }
 
+        // Email format validation
+        if (!validateEmail(email)) {
+            res.status(400);
+            throw new Error('Please provide a valid email address');
+        }
+
+        // Password length validation
+        if (password.length < 6) {
+            res.status(400);
+            throw new Error('Password must be at least 6 characters long');
+        }
+
+        // Check if user already exists
+        const userExists = await User.findOne({ email });
         if (userExists) {
             res.status(400);
             throw new Error('User already exists');
         }
 
+        // Create user
         const user = await User.create({
             name,
             email,
             password,
-            role
+            role: role || 'buyer'
         });
 
         if (user) {
@@ -36,11 +61,17 @@ const registerUser = async (req, res, next) => {
             throw new Error('Invalid user data');
         }
     } catch (error) {
-        if (error.code === 11000) {
+        // Handle validation errors from Mongoose
+        if (error.name === 'ValidationError') {
+            res.status(400);
+            const messages = Object.values(error.errors)
+                .map(e => e.message)
+                .join(', ');
+            error = new Error(messages);
+        } else if (error.code === 11000) {
             res.status(400);
             error = new Error('User already exists');
-        }
-        if (error.message.includes("SSL routines")) {
+        } else if (error.message.includes("SSL routines")) {
             res.status(500);
             error = new Error("Database Connection Failed (SSL): check your IP Whitelist on MongoDB Atlas.");
         }
@@ -55,6 +86,18 @@ const loginUser = async (req, res, next) => {
     const { email, password } = req.body;
 
     try {
+        // Input validation
+        if (!email || !password) {
+            res.status(400);
+            throw new Error('Please provide email and password');
+        }
+
+        // Email format validation
+        if (!validateEmail(email)) {
+            res.status(400);
+            throw new Error('Please provide a valid email address');
+        }
+
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
@@ -71,7 +114,6 @@ const loginUser = async (req, res, next) => {
             throw new Error('Invalid email or password');
         }
     } catch (error) {
-        console.error("Login Error:", error);
         if (error.message.includes("SSL routines")) {
             res.status(500);
             error = new Error("Database Connection Failed (SSL): check your IP Whitelist on MongoDB Atlas.");

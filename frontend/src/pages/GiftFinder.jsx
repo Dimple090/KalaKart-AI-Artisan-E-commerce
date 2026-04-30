@@ -143,7 +143,7 @@ const GiftFinder = () => {
                                                 <p className="text-gray-500 text-sm line-clamp-2 mb-4 leading-relaxed">{product.description}</p>
                                             </div>
                                             <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
-                                                <span className="text-2xl font-black text-[#3E2723]">${product.price}</span>
+                                                <span className="text-2xl font-black text-[#3E2723]">₹{product.price}</span>
                                                 <Link to={`/product/${product._id}`} className="p-3 bg-[#EFEBE9] hover:bg-[#3E2723] hover:text-white rounded-full transition-colors group/btn">
                                                     <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
                                                 </Link>

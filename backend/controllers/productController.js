@@ -48,7 +48,7 @@ const getProductById = async (req, res, next) => {
 // @access  Private (Artisan) - Middleware needed
 const createProduct = async (req, res, next) => {
     // imageUrl from body is fallback if no file is provided
-    let { name, description, price, category, imageUrl, stock, ecoMaterial, ecoCarbon, ecoRecycling, isHandmadeVerified, handmadeAuthenticityScore, handmadeReasoning, handmadeKeyObservations } = req.body;
+    let { name, description, price, category, imageUrl, stock, ecoMaterial, ecoCarbon, ecoRecycling, isHandmadeVerified, handmadeAuthenticityScore, handmadeReasoning, handmadeKeyObservations, materialCost, laborCost, videoUrl, modelUrl } = req.body;
 
     // If multer processed a file, use the Cloudinary URL
     if (req.file) {
@@ -69,11 +69,17 @@ const createProduct = async (req, res, next) => {
                 carbon: Number(ecoCarbon) || 0,
                 recycling: Number(ecoRecycling) || 0
             },
+            transparency: {
+                materialCost: Number(materialCost) || 0,
+                laborCost: Number(laborCost) || 0
+            },
             // Verification fields are stored if provided (e.g. from String 'true' if via FormData)
             isHandmadeVerified: isHandmadeVerified === 'true' || isHandmadeVerified === true,
             handmadeAuthenticityScore: Number(handmadeAuthenticityScore) || 0,
             handmadeReasoning: handmadeReasoning || '',
-            handmadeKeyObservations: handmadeKeyObservations ? JSON.parse(handmadeKeyObservations) : []
+            handmadeKeyObservations: handmadeKeyObservations ? JSON.parse(handmadeKeyObservations) : [],
+            videoUrl: videoUrl || '',
+            modelUrl: modelUrl || ''
         });
 
         const createdProduct = await product.save();
@@ -151,7 +157,7 @@ const deleteProduct = async (req, res, next) => {
 // @access  Private (Artisan)
 const updateProduct = async (req, res, next) => {
     try {
-        const { name, description, price, category, stock, ecoScore } = req.body;
+        const { name, description, price, category, stock, ecoScore, materialCost, laborCost, videoUrl, modelUrl } = req.body;
         const product = await Product.findById(req.params.id);
 
         if (!product) {
@@ -170,12 +176,21 @@ const updateProduct = async (req, res, next) => {
         product.price = price || product.price;
         product.category = category || product.category;
         product.stock = stock || product.stock;
+        product.videoUrl = videoUrl !== undefined ? videoUrl : product.videoUrl;
+        product.modelUrl = modelUrl !== undefined ? modelUrl : product.modelUrl;
         
         if (ecoScore) {
             product.ecoScore = {
-                material: ecoScore.material || product.ecoScore.material,
-                carbon: ecoScore.carbon || product.ecoScore.carbon,
-                recycling: ecoScore.recycling || product.ecoScore.recycling,
+                material: Number(ecoScore.material) || product.ecoScore.material,
+                carbon: Number(ecoScore.carbon) || product.ecoScore.carbon,
+                recycling: Number(ecoScore.recycling) || product.ecoScore.recycling,
+            };
+        }
+
+        if (materialCost !== undefined || laborCost !== undefined) {
+            product.transparency = {
+                materialCost: materialCost !== undefined ? Number(materialCost) : product.transparency.materialCost,
+                laborCost: laborCost !== undefined ? Number(laborCost) : product.transparency.laborCost
             };
         }
 

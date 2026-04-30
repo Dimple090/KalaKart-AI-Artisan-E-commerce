@@ -102,6 +102,7 @@ const updateUserProfile = async (req, res, next) => {
             user.craftCategories = req.body.craftCategories || user.craftCategories;
             user.socialLinks = req.body.socialLinks || user.socialLinks;
             user.craftStory = req.body.craftStory !== undefined ? req.body.craftStory : user.craftStory;
+            user.role = req.body.role || user.role;
 
             const updatedUser = await user.save();
 

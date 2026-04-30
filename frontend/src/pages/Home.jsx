@@ -11,16 +11,27 @@ import { Filter, SlidersHorizontal, ArrowRight, Star, Search, Sparkles, Gift, He
 import { motion } from 'framer-motion';
 
 // Dummy products for fallback
-const dummyProducts = Array.from({ length: 8 }).map((_, i) => ({
-  _id: `dummy-${i + 1}`,
-  name: `Handcrafted Artisan Item ${i + 1}`,
-  description: "A beautiful handmade piece created with love and passion.",
-  price: (Math.random() * 100 + 20).toFixed(2),
-  category: ["Jewelry", "Pottery", "Home Decor", "Textiles"][i % 4],
-  imageUrl: `https://picsum.photos/seed/${i + 50}/400/400`,
-  stock: 10,
-  artisan: { name: "Local Master Artisan" }
-}));
+const imagesForDummy = {
+  "Jewelry": "/images/kundan_jewelry.png",
+  "Pottery": "/images/blue_pottery.png",
+  "Home Decor": "/images/dhokra_elephant.png",
+  "Textiles": "/images/banarasi_saree.png",
+  "Painting": "/images/dhokra_elephant.png" // Fallback
+};
+
+const dummyProducts = Array.from({ length: 8 }).map((_, i) => {
+  const category = ["Jewelry", "Pottery", "Home Decor", "Textiles"][i % 4];
+  return {
+    _id: `dummy-${i + 1}`,
+    name: `Premium ${category} Piece`,
+    description: "An authentic, verified handcrafted artifact showcasing traditional Indian heritage.",
+    price: Math.floor(Math.random() * 5000 + 1000).toFixed(2),
+    category: category,
+    imageUrl: imagesForDummy[category],
+    stock: 10,
+    artisan: { name: "Local Master Artisan" }
+  };
+});
 
 const Home = () => {
   const [products, setProducts] = useState([]);
@@ -179,11 +190,39 @@ const Home = () => {
                 >
                   Explore Products <ArrowRight className="w-5 h-5" />
                 </motion.button>
-                <Link to="/dashboard">
-                  <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn-secondary">
+                {user?.role === 'artisan' ? (
+                  <Link to="/dashboard">
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn-secondary">
+                      Artisan Dashboard
+                    </motion.button>
+                  </Link>
+                ) : user ? (
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }} 
+                    whileTap={{ scale: 0.95 }} 
+                    className="btn-secondary"
+                    onClick={async () => {
+                      try {
+                        const config = { headers: { Authorization: `Bearer ${user.token}` } };
+                        const { data } = await axios.put('http://localhost:5000/api/users/profile', { role: 'artisan' }, config);
+                        const updatedUser = { ...data, token: user.token };
+                        localStorage.setItem('userInfo', JSON.stringify(updatedUser));
+                        window.location.href = '/dashboard';
+                      } catch (err) {
+                        console.error('Failed to upgrade to seller', err);
+                        alert('Could not upgrade to seller. Please try again.');
+                      }
+                    }}
+                  >
                     Become a Seller
                   </motion.button>
-                </Link>
+                ) : (
+                  <Link to="/register?role=artisan">
+                    <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="btn-secondary">
+                      Become a Seller
+                    </motion.button>
+                  </Link>
+                )}
               </div>
 
               <div className="pt-8 flex items-center justify-center lg:justify-start gap-6 opacity-80">
@@ -212,7 +251,7 @@ const Home = () => {
                 <img
                   src="https://images.unsplash.com/photo-1493934558415-9d19f0b2b4d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80"
                   alt="A pottery artisan showcasing a handmade piece"
-                  fetchpriority="high"
+                  fetchPriority="high"
                   className="w-full h-auto object-cover transform hover:scale-105 transition duration-700"
                 />
 
@@ -269,7 +308,7 @@ const Home = () => {
                   </div>
                   <div className="p-3">
                     <p className="text-white font-bold text-xs truncate">{product.name}</p>
-                    <p className="text-amber-300 text-xs font-black mt-0.5">${product.price}</p>
+                    <p className="text-amber-300 text-xs font-black mt-0.5">₹{product.price}</p>
                   </div>
                 </Link>
               ))}

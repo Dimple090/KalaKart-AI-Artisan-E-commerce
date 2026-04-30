@@ -10,8 +10,6 @@ import Dashboard from './pages/Dashboard';
 import AccessDenied from './pages/AccessDenied';
 import OrderSuccess from './pages/OrderSuccess';
 import Orders from './pages/Orders';
-import LiveStream from './pages/LiveStream';
-import CraftTutorial from './pages/CraftTutorial';
 import GiftFinder from './pages/GiftFinder';
 import SavedIdeas from './pages/SavedIdeas';
 import Profile from './pages/Profile';
@@ -20,7 +18,6 @@ import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
-import AIChatbot from './components/AIChatbot';
 
 function App() {
   return (
@@ -41,8 +38,6 @@ function App() {
                   <Route path="/order-success" element={<OrderSuccess />} />
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/access-denied" element={<AccessDenied />} />
-                  <Route path="/live/:id" element={<LiveStream />} />
-                  <Route path="/craft-tutorial" element={<CraftTutorial />} />
                   <Route path="/gifts" element={<GiftFinder />} />
                   <Route path="/profile/:id" element={<Profile />} />
 
@@ -55,7 +50,6 @@ function App() {
                   </Route>
                 </Routes>
               </main>
-              <AIChatbot />
               <Footer />
             </div>
           </WishlistProvider>

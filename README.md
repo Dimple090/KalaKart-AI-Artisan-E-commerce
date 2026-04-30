@@ -4,8 +4,7 @@
 
 KalaKart is a modern, full-stack e-commerce application designed to empower local artisans by providing them with a platform to sell their handcrafted goods. Built with the MERN stack (MongoDB, Express, React, Node.js), it features a premium "Glassmorphism" UI, advanced animations, and AI-powered tools.
 
-![KalaKart Hero Section](https://images.unsplash.com/photo-1493934558415-9d19f0b2b4d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80) 
-*(Note: Replace with actual screenshot)*
+![KalaKart Hero Section](./screenshots/home.png)
 
 ## 🚀 Key Features
 
@@ -21,6 +20,8 @@ KalaKart is a modern, full-stack e-commerce application designed to empower loca
 - **Cart Management**: Add/remove items, adjust quantities, and view totals.
 - **Checkout Flow**: Simulated payment processing with a mock Razorpay integration.
 - **Order Success**: Celebration page with confetti animation.
+- **Radical Transparency**: Visual breakdown of material and labor costs for every product.
+- **Immersive Media**: Integrated 3D model viewer and video playback for product listings.
 
 ### 🛡️ Authentication & Security
 - **User Accounts**: Secure registration and login functionality.
@@ -38,6 +39,17 @@ KalaKart moves beyond generic e-commerce by deeply integrating **purpose-built A
 
 3. **AI Avatar & Craft Identity Generator**
    - **For Community**: Enhances platform engagement by allowing users and artisans to instantly generate custom, culturally rich profile avatars. This visually represents their unique craft identity and persona without requiring professional photoshoots.
+
+4. **AI-Assisted Bespoke Commissions**
+   - **For Customization**: Buyers can describe complex custom visions, and our AI instantly evaluates technical feasibility, complexity, and provides an ethical price range in ₹, streamlining the negotiation process between buyer and artisan.
+
+## 💎 Ethical & Immersive Commerce
+
+KalaKart introduces industry-first features to build radical trust and engagement:
+
+- **Radical Transparency Widget**: Every product features a verified breakdown of **Material Cost** vs. **Artisan Labor**, ensuring buyers know exactly where their money goes.
+- **3D & Video Product Stories**: Immersive product viewing with integrated **3D Model viewing (.GLB)** and high-quality video stories, bringing the artisan's workshop to your screen.
+- **Indian Market Localization**: Fully localized for the Indian ecosystem with **Indian Rupee (₹)** support and authentic cultural context.
 
 ## 🛠️ Tech Stack
 
@@ -64,8 +76,11 @@ KalaKart moves beyond generic e-commerce by deeply integrating **purpose-built A
     ```bash
     cd backend
     npm install
-    # Create a .env file with:
-    # PORT=5000
+    # Copy the example env file and update your secrets:
+    # cp .env.example .env
+    # Then fill in your MongoDB Atlas URL or local MongoDB connection string:
+    # MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/kalakart?retryWrites=true&w=majority
+    # or
     # MONGO_URI=mongodb://localhost:27017/kalakart
     # JWT_SECRET=your_jwt_secret
     npm run dev
@@ -98,8 +113,16 @@ Here is a glimpse of the KalaKart platform:
 *(Seamless cart management and checkout flow)*
 
 ### 📊 Artisan Dashboard
-![Dashboard](./screenshots/dashboard.png)
-*(Artisan Hub featuring product management and analytics)*
+![Dashboard](./screenshots/transparency.png)
+*(Artisan Hub featuring Radical Transparency and real-time cost breakdowns)*
+
+### 💎 Ethical & Immersive Features
+![Ethical Commerce](./screenshots/immersive.png)
+*(Immersive Product Stories with 3D models and video integration)*
+
+### 🤝 AI Bespoke Commissions
+![Bespoke Commissions](./screenshots/commissions.png)
+*(AI-Assisted custom order evaluation and negotiation)*
 
 ## 🤝 Contributing
 

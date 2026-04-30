@@ -111,7 +111,7 @@ const Orders = () => {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500 font-medium">Total</p>
-                                    <p className="font-bold text-[#3E2723]">${order.totalPrice.toFixed(2)}</p>
+                                    <p className="font-bold text-[#3E2723]">₹{order.totalPrice.toFixed(2)}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500 font-medium">Order #</p>

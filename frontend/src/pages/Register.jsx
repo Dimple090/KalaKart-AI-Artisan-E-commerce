@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 
 const Register = () => {
+    const [searchParams] = useSearchParams();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('buyer');
+    const [role, setRole] = useState(searchParams.get('role') || 'buyer');
     const [showPassword, setShowPassword] = useState(false);
 
     const { register } = useAuth();
@@ -31,7 +32,7 @@ const Register = () => {
 
     return (
         <div className="min-h-[calc(100vh-16rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl w-full flex bg-white rounded-3xl shadow-xl overflow-hidden flex-row-reverse">
+            <div className="max-w-4xl w-full flex bg-white rounded-3xl shadow-xl flex-row-reverse">
                 {/* Illustration Section */}
                 <div className="hidden md:block w-1/2 bg-[#D7CCC8] p-12 text-[#3E2723] relative">
                     <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
@@ -55,7 +56,7 @@ const Register = () => {
                 </div>
 
                 {/* Form Section */}
-                <div className="w-full md:w-1/2 p-10 md:p-12 relative bg-[#EFEBE9]/30 backdrop-blur-sm overflow-hidden border-r border-[#D7CCC8]/50">
+                <div className="w-full md:w-1/2 p-10 md:p-12 relative bg-[#EFEBE9]/30 backdrop-blur-sm border-r border-[#D7CCC8]/50">
                     <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-[#BCAAA4]/40 rounded-full blur-3xl pointer-events-none"></div>
 
                     <h2 className="text-3xl font-bold text-[#3E2723] mb-2 relative z-10">Create Account</h2>

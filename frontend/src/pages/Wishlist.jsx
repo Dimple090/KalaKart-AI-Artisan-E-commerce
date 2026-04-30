@@ -111,7 +111,7 @@ const Wishlist = () => {
                                                     <h3 className="font-bold text-gray-900 truncate text-sm">{product.name}</h3>
                                                     <div className="flex items-center justify-between mt-1">
                                                         <span className="text-xs text-gray-500">{product.category}</span>
-                                                        <span className="font-black text-[#3E2723] text-sm">${product.price}</span>
+                                                        <span className="font-black text-[#3E2723] text-sm">₹{product.price}</span>
                                                     </div>
                                                 </div>
                                             </Link>
@@ -162,7 +162,7 @@ const Wishlist = () => {
                             <p className="text-sm text-[#8D6E63] mb-3">{item.category}</p>
 
                             <div className="flex items-center justify-between mt-auto">
-                                <span className="font-extrabold text-lg text-[#3E2723]">${item.price}</span>
+                                <span className="font-extrabold text-lg text-[#3E2723]">₹{item.price}</span>
                                 <button
                                     onClick={() => addToCart(item)}
                                     className="p-2.5 bg-[#EFEBE9] text-[#3E2723] rounded-full hover:bg-[#8D6E63] hover:text-white transition-all shadow-md hover:shadow-lg focus:ring-2 focus:ring-[#3E2723] outline-none"
