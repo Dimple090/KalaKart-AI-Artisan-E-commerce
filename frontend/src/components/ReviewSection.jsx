@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Star, User, Sparkles, ThumbsUp, Meh, ThumbsDown } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { apiUrl } from '../lib/api';
 
 const SentimentIcon = ({ sentiment }) => {
     if (sentiment === 'positive') return <ThumbsUp className="w-5 h-5 text-green-600" />;
@@ -28,14 +29,14 @@ const ReviewSection = ({ productId }) => {
         const fetchReviews = async () => {
             if (!productId) return;
             try {
-                const { data } = await axios.get(`http://localhost:5000/api/reviews/${productId}`);
+                const { data } = await axios.get(apiUrl(`/api/reviews/${productId}`));
                 setReviews(data);
 
                 // Fetch AI verdict silently if there are 2+ reviews
                 if (data.length >= 2) {
                     setVerdictLoading(true);
                     try {
-                        const { data: verdictData } = await axios.get(`http://localhost:5000/api/ai/review-summary/${productId}`);
+                        const { data: verdictData } = await axios.get(apiUrl(`/api/ai/review-summary/${productId}`));
                         if (verdictData.verdict) setAiVerdict(verdictData);
                     } catch {
                         // Silent fail — AI verdict is non-critical
@@ -65,7 +66,7 @@ const ReviewSection = ({ productId }) => {
                     Authorization: `Bearer ${user.token}`,
                 },
             };
-            const { data } = await axios.post(`http://localhost:5000/api/reviews/${productId}`, newReview, config);
+            const { data } = await axios.post(apiUrl(`/api/reviews/${productId}`), newReview, config);
             const postedReview = { ...data.review, user: { name: user.name } };
             setReviews([postedReview, ...reviews]);
             setNewReview({ rating: 5, comment: '' });

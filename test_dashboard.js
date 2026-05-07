@@ -247,7 +247,7 @@ async function runTests() {
     if (passed === total) {
         console.log('🎉 All tests passed! Dashboard is ready for manual testing.');
         console.log('\n📋 Manual Test Checklist:');
-        console.log('1. Open http://localhost:5174/login');
+        console.log(`1. Open ${FRONTEND_URL}/login`);
         console.log('2. Login with artisan@kalakart.com / password123');
         console.log('3. Navigate to /dashboard');
         console.log('4. Verify analytics metrics display correctly');

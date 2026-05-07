@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { X, Sparkles, Image as ImageIcon, Send, Loader2 } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 const CommissionModal = ({ isOpen, onClose, artisan }) => {
     const { user } = useAuth();
@@ -36,7 +37,7 @@ const CommissionModal = ({ isOpen, onClose, artisan }) => {
         setLoading(true);
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            await axios.post('http://localhost:5000/api/commissions', {
+            await axios.post(apiUrl('/api/commissions'), {
                 artisanId: artisan._id,
                 requestDetails,
                 referenceImage

@@ -4,8 +4,8 @@ import { useCart } from '../context/CartContext';
 import { Link } from 'react-router-dom';
 import { Trash2, ShoppingCart, Heart, Sparkles, Wand2, X } from 'lucide-react';
 import axios from 'axios';
-// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiUrl } from '../lib/api';
 
 const Wishlist = () => {
     const { wishlist, removeFromWishlist } = useWishlist();
@@ -21,7 +21,7 @@ const Wishlist = () => {
         setStyleError('');
         setStyleOpen(true);
         try {
-            const { data } = await axios.post('http://localhost:5000/api/ai/style-match', {
+            const { data } = await axios.post(apiUrl('/api/ai/style-match'), {
                 wishlistItems: wishlist.map(i => ({ _id: i._id, name: i.name, category: i.category, price: i.price }))
             });
             setStyleData(data);

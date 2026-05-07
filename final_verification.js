@@ -149,7 +149,7 @@ async function runTests() {
         console.log('   • Orders System: ✅ FUNCTIONAL');
         console.log('   • AI Integration: ✅ WORKING');
         console.log('\n✨ Ready for:');
-        console.log('   • Dashboard Testing: http://localhost:5174');
+        console.log(`   • Dashboard Testing: ${FRONTEND_URL}`);
         console.log('   • User Acceptance Testing');
         console.log('   • Production Deployment');
         process.exit(0);

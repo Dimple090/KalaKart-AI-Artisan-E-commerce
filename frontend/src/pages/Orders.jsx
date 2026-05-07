@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { Package, Clock, CheckCircle, MapPin, Sparkles, Truck } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { apiUrl, API_BASE_URL } from '../lib/api';
 
 const Orders = () => {
     const { user } = useAuth();
@@ -16,8 +17,11 @@ const Orders = () => {
     const fetchInsight = useCallback(async (order) => {
         setInsights(prev => ({ ...prev, [order._id]: { loading: true } }));
         try {
-            const { data } = await axios.post('http://localhost:5000/api/ai/order-insight', {
-                items: order.orderItems.map(i => ({ name: i.name, qty: i.qty })),
+            const { data } = await axios.post(apiUrl('/api/ai/order-insight'), {
+                items: order.orderItems.map(i => ({
+                    name: i.product?.name || i.name || 'Handmade item',
+                    qty: i.quantity ?? i.qty ?? 1
+                })),
                 status: order.status || 'Processing',
                 city: order.shippingAddress?.city || '',
                 country: order.shippingAddress?.country || '',
@@ -31,7 +35,7 @@ const Orders = () => {
 
     // Socket Initialization
     useEffect(() => {
-        const newSocket = io('http://localhost:5000');
+        const newSocket = io(API_BASE_URL);
         setSocket(newSocket);
 
         newSocket.on('courier_location_update', (data) => {
@@ -66,7 +70,7 @@ const Orders = () => {
                 const config = {
                     headers: { Authorization: `Bearer ${user.token}` }
                 };
-                const { data } = await axios.get('http://localhost:5000/api/orders/myorders', config);
+                const { data } = await axios.get(apiUrl('/api/orders/myorders'), config);
                 setOrders(data);
             } catch (error) {
                 console.error("Failed to fetch orders:", error);
@@ -125,20 +129,26 @@ const Orders = () => {
                             <div className="p-6">
                                 <h3 className="font-bold text-lg mb-4 text-[#3E2723]">Items in your order:</h3>
                                 <ul className="divide-y divide-gray-100">
-                                    {order.orderItems.map((item) => (
-                                        <li key={item._id} className="py-4 flex gap-4 items-center">
+                                    {order.orderItems.map((item) => {
+                                        const product = item.product || {};
+                                        const itemName = product.name || item.name || 'Handmade item';
+                                        const itemImage = product.imageUrl || item.imageUrl || 'https://picsum.photos/seed/order-item/160/160';
+                                        const itemQty = item.quantity ?? item.qty ?? 1;
+                                        return (
+                                        <li key={item._id || product._id} className="py-4 flex gap-4 items-center">
                                             <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
-                                                <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
+                                                <img src={itemImage} alt={itemName} className="w-full h-full object-cover" />
                                             </div>
                                             <div className="flex-grow">
-                                                <p className="font-bold text-gray-900">{item.name}</p>
-                                                <p className="text-gray-500 text-sm">Qty: {item.qty}</p>
+                                                <p className="font-bold text-gray-900">{itemName}</p>
+                                                <p className="text-gray-500 text-sm">Qty: {itemQty}</p>
                                             </div>
                                             <div className="font-bold text-gray-900">
-                                                ${(item.price * item.qty).toFixed(2)}
+                                                Rs. {(item.price * itemQty).toFixed(2)}
                                             </div>
                                         </li>
-                                    ))}
+                                        );
+                                    })}
                                 </ul>
                             </div>
                             <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

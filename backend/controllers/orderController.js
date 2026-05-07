@@ -1,5 +1,11 @@
 const Order = require('../models/Order');
 
+const normalizeOrderItems = (orderItems = []) => orderItems.map((item) => ({
+    product: item.product,
+    quantity: item.quantity ?? item.qty,
+    price: item.price
+}));
+
 // @desc    Create new order
 // @route   POST /api/orders
 // @access  Private
@@ -15,12 +21,12 @@ const addOrderItems = async (req, res, next) => {
     } = req.body;
 
     try {
-        if (orderItems && orderItems.length === 0) {
+        if (!orderItems || orderItems.length === 0) {
             res.status(400);
             throw new Error('No order items');
         } else {
             const order = new Order({
-                orderItems,
+                orderItems: normalizeOrderItems(orderItems),
                 user: req.user._id, // Assumes middleware sets req.user
                 shippingAddress,
                 paymentMethod,
@@ -46,9 +52,19 @@ const getOrderById = async (req, res, next) => {
         const order = await Order.findById(req.params.id).populate(
             'user',
             'name email'
-        );
+        ).populate('orderItems.product');
 
         if (order) {
+            const isOwner = order.user._id.toString() === req.user._id.toString();
+            const hasArtisanProduct = order.orderItems.some(item =>
+                item.product?.artisan?.toString() === req.user._id.toString()
+            );
+
+            if (!isOwner && !hasArtisanProduct) {
+                res.status(401);
+                throw new Error('User not authorized to view this order');
+            }
+
             res.json(order);
         } else {
             res.status(404);
@@ -64,7 +80,7 @@ const getOrderById = async (req, res, next) => {
 // @access  Private
 const getMyOrders = async (req, res, next) => {
     try {
-        const orders = await Order.find({ user: req.user._id });
+        const orders = await Order.find({ user: req.user._id }).populate('orderItems.product');
         res.json(orders);
     } catch (error) {
         next(error);

@@ -4,7 +4,15 @@ const upload = require('../config/cloudinary');
 const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
-router.route('/').get(getProducts).post(protect, upload.single('image'), createProduct);
+const optionalProductImageUpload = (req, res, next) => {
+    if (req.is('multipart/form-data')) {
+        return upload.single('image')(req, res, next);
+    }
+
+    return next();
+};
+
+router.route('/').get(getProducts).post(protect, optionalProductImageUpload, createProduct);
 router.route('/generate-description').post(generateDescription);
 router.route('/artisan/:id').get(getProductsByArtisan);
 router.route('/:id').get(getProductById).delete(protect, deleteProduct).put(protect, updateProduct);

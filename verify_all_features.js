@@ -252,7 +252,7 @@ async function runTests() {
         console.log('\n🎉 ALL FEATURES VERIFIED SUCCESSFULLY!\n');
         console.log('✨ The application is ready for:');
         console.log('   • User testing');
-        console.log('   • Dashboard verification at http://localhost:5174');
+        console.log(`   • Dashboard verification at ${FRONTEND_URL}`);
         console.log('   • Product creation and management');
         console.log('   • Analytics and reporting');
         process.exit(0);

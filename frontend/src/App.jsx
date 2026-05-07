@@ -12,6 +12,7 @@ import OrderSuccess from './pages/OrderSuccess';
 import Orders from './pages/Orders';
 import GiftFinder from './pages/GiftFinder';
 import SavedIdeas from './pages/SavedIdeas';
+import CraftTutorial from './pages/CraftTutorial';
 import Profile from './pages/Profile';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -39,6 +40,7 @@ function App() {
                   <Route path="/orders" element={<Orders />} />
                   <Route path="/access-denied" element={<AccessDenied />} />
                   <Route path="/gifts" element={<GiftFinder />} />
+                  <Route path="/craft-tutorial" element={<CraftTutorial />} />
                   <Route path="/profile/:id" element={<Profile />} />
 
                   {/* Protected Routes */}

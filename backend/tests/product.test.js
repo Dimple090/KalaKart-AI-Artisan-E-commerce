@@ -232,8 +232,7 @@ describe('Product API', () => {
                 stock: 1
             });
 
-        // Should be 201 (created) or 401/403 (denied) - some implementations create product anyway
-        expect([201, 400, 401, 403]).toContain(res.statusCode);
+        expect([401, 403]).toContain(res.statusCode);
     });
 
     // ==================== UPDATE TESTS ====================
@@ -251,6 +250,30 @@ describe('Product API', () => {
         expect(res.body.name).toEqual('Updated Bowl');
         expect(res.body.price).toEqual(55.00);
         expect(res.body.stock).toEqual(8);
+    });
+
+    it('Should update numeric product fields to zero when explicitly provided', async () => {
+        const res = await request(app)
+            .put(`/api/products/${productId}`)
+            .set('Authorization', `Bearer ${artisanToken}`)
+            .send({
+                stock: 0,
+                ecoScore: {
+                    material: 0,
+                    carbon: 0,
+                    recycling: 0
+                },
+                materialCost: 0,
+                laborCost: 0
+            });
+
+        expect(res.statusCode).toEqual(200);
+        expect(res.body.stock).toEqual(0);
+        expect(res.body.ecoScore.material).toEqual(0);
+        expect(res.body.ecoScore.carbon).toEqual(0);
+        expect(res.body.ecoScore.recycling).toEqual(0);
+        expect(res.body.transparency.materialCost).toEqual(0);
+        expect(res.body.transparency.laborCost).toEqual(0);
     });
 
     it('Should not allow non-owner to update product', async () => {

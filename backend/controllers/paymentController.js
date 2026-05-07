@@ -2,6 +2,12 @@ const Order = require('../models/Order');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
+const normalizeOrderItems = (orderItems = []) => orderItems.map((item) => ({
+    product: item.product,
+    quantity: item.quantity ?? item.qty,
+    price: item.price
+}));
+
 const getRazorpayClient = () => {
     const key_id = process.env.RAZORPAY_KEY_ID;
     const key_secret = process.env.RAZORPAY_SECRET;
@@ -43,7 +49,7 @@ const createOrder = async (req, res, next) => {
         // Create a basic order in our database
         const newOrder = new Order({
             user: req.user._id,
-            orderItems,
+            orderItems: normalizeOrderItems(orderItems),
             shippingAddress,
             totalPrice: amount,
             razorpayOrderId: razorpayOrder.id,

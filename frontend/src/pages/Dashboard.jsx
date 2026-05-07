@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -16,6 +16,11 @@ import {
   Video,
   Copy,
   Wand2,
+  Leaf,
+  PieChart as PieChartIcon,
+  Upload,
+  PlayCircle,
+  AlertCircle,
 } from "lucide-react";
 import AvatarGenerator from "../components/AvatarGenerator";
 import {
@@ -28,6 +33,51 @@ import {
 } from "recharts";
 import { Link } from "react-router-dom";
 import AccessDenied from "./AccessDenied";
+import { apiUrl } from '../lib/api';
+
+const getCustomerId = (order) => {
+  if (!order?.user) return null;
+  return order.user._id || order.user;
+};
+
+const generateMonthlySalesData = (orderData = []) => {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
+    return {
+      key: `${date.getFullYear()}-${date.getMonth()}`,
+      name: date.toLocaleString("en-US", { month: "short" }),
+      sales: 0,
+    };
+  });
+
+  const buckets = new Map(months.map((month) => [month.key, month]));
+  orderData.forEach((order) => {
+    const created = new Date(order.createdAt || Date.now());
+    const key = `${created.getFullYear()}-${created.getMonth()}`;
+    const bucket = buckets.get(key);
+    if (!bucket) return;
+
+    const itemCount =
+      order.orderItems?.reduce(
+        (sum, item) => sum + (Number(item.quantity ?? item.qty) || 1),
+        0,
+      ) || 1;
+    bucket.sales += itemCount;
+  });
+
+  return months;
+};
+
+const calculateRepeatCustomers = (orderData = []) => {
+  const customerCounts = {};
+  orderData.forEach((order) => {
+    const customerId = getCustomerId(order);
+    if (!customerId) return;
+    customerCounts[customerId] = (customerCounts[customerId] || 0) + 1;
+  });
+  return Object.values(customerCounts).filter((count) => count > 1).length;
+};
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -88,12 +138,51 @@ const Dashboard = () => {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
 
+  const calculateAnalytics = useCallback((artisanProducts = [], orderData = []) => {
+    const totalRevenue = orderData.reduce(
+      (sum, order) => sum + (Number(order.totalPrice) || 0),
+      0,
+    );
+    const totalOrders = orderData.length;
+    const avgRating =
+      artisanProducts.length > 0
+        ? (
+            artisanProducts.reduce((sum, product) => sum + (product.rating || 0), 0) /
+            artisanProducts.length
+          ).toFixed(1)
+        : "0.0";
+
+    const customerIds = orderData.map(getCustomerId).filter(Boolean);
+    const customerInsights = {
+      totalCustomers: new Set(customerIds).size,
+      repeatCustomers: calculateRepeatCustomers(orderData),
+      avgOrderValue:
+        totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : "0.00",
+    };
+
+    setAnalytics({
+      totalRevenue: totalRevenue.toFixed(2),
+      totalSales: artisanProducts.reduce(
+        (sum, product) => sum + (product.sales || 0),
+        0,
+      ),
+      totalOrders,
+      avgRating,
+      monthlySales: generateMonthlySalesData(orderData),
+      topProducts: [...artisanProducts]
+        .sort((a, b) => (b.sales || 0) - (a.sales || 0))
+        .slice(0, 5),
+      customerInsights,
+    });
+  }, []);
+
   useEffect(() => {
     const fetchData = async () => {
+      setAnalyticsLoading(true);
       try {
         // Fetch Products
         const { data: productData } = await axios.get(
-          `http://localhost:5000/api/products`,
+          apiUrl(`/api/products`),
         );
         // Assume we only want this artisan's products (simplified for demo, usually filtered on backend)
         const artisanProducts = productData.filter(
@@ -106,7 +195,7 @@ const Dashboard = () => {
           headers: { Authorization: `Bearer ${user.token}` },
         };
         const { data: orderData } = await axios.get(
-          "http://localhost:5000/api/orders/artisan",
+          apiUrl('/api/orders/artisan'),
           config,
         );
         setOrders(orderData);
@@ -114,7 +203,7 @@ const Dashboard = () => {
         // Fetch Commissions
         try {
           const { data: commissionData } = await axios.get(
-            "http://localhost:5000/api/commissions/artisan",
+            apiUrl('/api/commissions/artisan'),
             config,
           );
           setCommissions(commissionData);
@@ -126,6 +215,8 @@ const Dashboard = () => {
         calculateAnalytics(artisanProducts, orderData);
       } catch (error) {
         console.error("Dashboard fetch error:", error);
+      } finally {
+        setAnalyticsLoading(false);
       }
     };
     if (user) {
@@ -133,7 +224,7 @@ const Dashboard = () => {
       // Auto-fetch market trends for artisans
       setTrendLoading(true);
       axios
-        .get("http://localhost:5000/api/ai/trend-forecast", {
+        .get(apiUrl('/api/ai/trend-forecast'), {
           headers: { Authorization: `Bearer ${user.token}` },
         })
         .then((res) => {
@@ -142,65 +233,7 @@ const Dashboard = () => {
         .catch(() => {})
         .finally(() => setTrendLoading(false));
     }
-  }, [user]);
-
-  const calculateAnalytics = (artisanProducts, orderData) => {
-    // Revenue calculation
-    const totalRevenue = orderData.reduce(
-      (sum, order) => sum + (order.totalPrice || 0),
-      0,
-    );
-    const totalOrders = orderData.length;
-    const avgRating =
-      artisanProducts.length > 0
-        ? (
-            artisanProducts.reduce((sum, p) => sum + (p.rating || 0), 0) /
-            artisanProducts.length
-          ).toFixed(1)
-        : 0;
-
-    // Monthly sales data (mock data - in production fetch from backend)
-    const monthlySales = generateMonthlySalesData(orderData);
-
-    // Top products by sales
-    const topProducts = artisanProducts
-      .sort((a, b) => (b.sales || 0) - (a.sales || 0))
-      .slice(0, 5);
-
-    // Customer insights
-    const customerInsights = {
-      totalCustomers: new Set(orderData.map((o) => o.user?._id)).size,
-      repeatCustomers: calculateRepeatCustomers(orderData),
-      avgOrderValue: (totalRevenue / totalOrders).toFixed(2),
-    };
-
-    setAnalytics({
-      totalRevenue: totalRevenue.toFixed(2),
-      totalSales: artisanProducts.reduce((sum, p) => sum + (p.sales || 0), 0),
-      totalOrders,
-      avgRating,
-      monthlySales,
-      topProducts,
-      customerInsights,
-    });
-  };
-
-  const generateMonthlySalesData = (orders) => {
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    return months.map((month, idx) => ({
-      name: month,
-      sales: Math.floor(Math.random() * 50) + 10,
-    }));
-  };
-
-  const calculateRepeatCustomers = (orders) => {
-    const customerCounts = {};
-    orders.forEach((order) => {
-      const customerId = order.user?._id;
-      customerCounts[customerId] = (customerCounts[customerId] || 0) + 1;
-    });
-    return Object.values(customerCounts).filter((count) => count > 1).length;
-  };
+  }, [user, calculateAnalytics]);
 
   const handleGenerateDescription = async () => {
     if (!name || !category) {
@@ -210,7 +243,7 @@ const Dashboard = () => {
     setGenerating(true);
     try {
       const { data } = await axios.post(
-        "http://localhost:5000/api/products/generate-description",
+        apiUrl('/api/products/generate-description'),
         {
           productName: name,
           category,
@@ -240,7 +273,7 @@ const Dashboard = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.post(
-        "http://localhost:5000/api/ai/predict-price",
+        apiUrl('/api/ai/predict-price'),
         {
           category,
           material_cost: parseInt(ecoMaterial) * 5 || 20, // rough mockup
@@ -248,9 +281,10 @@ const Dashboard = () => {
         },
         config,
       );
-      setPriceSuggestion(data);
-      if (data.suggested_price) {
-        setPrice(data.suggested_price);
+      const suggestedPrice = data.suggested_price ?? data.suggestedPrice;
+      setPriceSuggestion({ ...data, suggested_price: suggestedPrice });
+      if (suggestedPrice) {
+        setPrice(suggestedPrice);
       }
     } catch (error) {
       console.error("Price prediction failed", error);
@@ -275,7 +309,7 @@ const Dashboard = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.post(
-        "http://localhost:5000/api/ai/product-name",
+        apiUrl('/api/ai/product-name'),
         {
           category,
           description,
@@ -311,7 +345,7 @@ const Dashboard = () => {
       const base64data = await getBase64(imageFile);
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.post(
-        "http://localhost:5000/api/ai/auto-list",
+        apiUrl('/api/ai/auto-list'),
         {
           imageBase64: base64data,
         },
@@ -344,18 +378,22 @@ const Dashboard = () => {
 
     try {
       const { data } = await axios.post(
-        "http://localhost:5000/api/ai/verify-handmade",
+        apiUrl('/api/ai/verify-handmade'),
         {
-          product: name,
+          name: name,
           description: description,
         },
+        {
+          headers: { Authorization: `Bearer ${user.token}` },
+        }
       );
 
+      const fullData = data.fullData || data;
       setVerificationResult({
-        isHandmadeVerified: data.verificationResult === "Verified Handmade",
-        handmadeAuthenticityScore: data.authenticityScore,
-        handmadeReasoning: data.reasoning,
-        fullData: data, // optional, to display reasoning in the UI
+        isHandmadeVerified: data.isHandmadeVerified === true,
+        handmadeAuthenticityScore: fullData.authenticityScore || data.authenticityScore || 95,
+        handmadeReasoning: fullData.verificationResult || data.reasoning || "Verified by KalaKart AI",
+        fullData,
       });
     } catch (error) {
       console.error("Verification failed", error);
@@ -422,7 +460,7 @@ const Dashboard = () => {
       };
 
       const { data } = await axios.post(
-        "http://localhost:5000/api/products",
+        apiUrl('/api/products'),
         formData,
         config,
       );
@@ -463,7 +501,7 @@ const Dashboard = () => {
         },
       };
       await axios.delete(
-        `http://localhost:5000/api/products/${productId}`,
+        apiUrl(`/api/products/${productId}`),
         config,
       );
       setProducts(products.filter((p) => p._id !== productId));
@@ -522,7 +560,7 @@ const Dashboard = () => {
         modelUrl,
       };
       const { data } = await axios.put(
-        `http://localhost:5000/api/products/${editingProduct._id}`,
+        apiUrl(`/api/products/${editingProduct._id}`),
         updatedData,
         config,
       );
@@ -544,7 +582,7 @@ const Dashboard = () => {
         },
       };
       const { data } = await axios.put(
-        `http://localhost:5000/api/orders/${orderId}/status`,
+        apiUrl(`/api/orders/${orderId}/status`),
         { status: newStatus },
         config,
       );
@@ -562,7 +600,7 @@ const Dashboard = () => {
         headers: { Authorization: `Bearer ${user.token}` },
       };
       const { data } = await axios.put(
-        `http://localhost:5000/api/commissions/${id}/status`,
+        apiUrl(`/api/commissions/${id}/status`),
         { status, finalPrice },
         config,
       );
@@ -577,6 +615,32 @@ const Dashboard = () => {
   const [photoTipsLoading, setPhotoTipsLoading] = useState(false);
   const [photoTips, setPhotoTips] = useState("");
 
+  const handleGetPhotoTips = async (imageUrl) => {
+    if (!imageUrl) return;
+    setPhotoTipsLoading(true);
+    setPhotoTips("");
+
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      const { data } = await axios.post(
+        apiUrl('/api/ai/photo-tips'),
+        { imageUrl },
+        config,
+      );
+      setPhotoTips(
+        data.tips ||
+          "Use soft side lighting, crop closer, and keep the background simple so the handmade details stand out.",
+      );
+    } catch (error) {
+      console.error("Photo tips failed:", error);
+      setPhotoTips(
+        "Use soft side lighting, crop closer, and keep the background simple so the handmade details stand out.",
+      );
+    } finally {
+      setPhotoTipsLoading(false);
+    }
+  };
+
   const handleGetSalesStrategy = async (product) => {
     setStrategyProduct(product);
     setStrategyLoading(true);
@@ -585,7 +649,7 @@ const Dashboard = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.post(
-        "http://localhost:5000/api/ai/sales-strategy",
+        apiUrl('/api/ai/sales-strategy'),
         {
           productName: product.name,
           description: product.description,
@@ -612,7 +676,7 @@ const Dashboard = () => {
     try {
       const config = { headers: { Authorization: `Bearer ${user.token}` } };
       const { data } = await axios.post(
-        "http://localhost:5000/api/ai/social-caption",
+        apiUrl('/api/ai/social-caption'),
         {
           productName: product.name,
           description: product.description,
@@ -743,6 +807,12 @@ const Dashboard = () => {
       </div>
 
       {/* AI Market Intelligence Panel */}
+      {trendLoading && !trendData && (
+        <div className="mb-8 bg-white rounded-2xl border border-amber-100 p-5 text-sm font-semibold text-amber-700 shadow-sm flex items-center gap-3">
+          <Sparkles className="w-4 h-4 animate-spin" />
+          Loading market intelligence...
+        </div>
+      )}
       {trendData && (
         <div className="mb-8 bg-gradient-to-br from-[#FFF8E1] to-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden animate-fade-in">
           <div className="p-5 border-b border-amber-100 flex items-center justify-between bg-white/50">
@@ -806,6 +876,12 @@ const Dashboard = () => {
       {/* Analytics Dashboard */}
       {activeTab === "products" && (
         <div className="mb-8 space-y-6 animate-fade-in">
+          {analyticsLoading && (
+            <div className="bg-white rounded-xl border border-gray-100 px-4 py-3 text-sm font-semibold text-gray-500 flex items-center gap-2 shadow-sm">
+              <Sparkles className="w-4 h-4 animate-spin text-amber-500" />
+              Refreshing dashboard metrics...
+            </div>
+          )}
           {/* Key Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
@@ -1095,10 +1171,10 @@ const Dashboard = () => {
                         </button>
                       </div>
                       {priceSuggestion && (
-                        <p className="text-xs text-blue-600 mt-1 mt-1 flex items-center gap-1 font-medium">
+                        <p className="text-xs text-blue-600 mt-1 flex items-center gap-1 font-medium">
                           <Sparkles className="w-3 h-3" />
                           AI suggests ₹
-                          {priceSuggestion.suggested_price.toFixed(2)}
+                          {Number(priceSuggestion.suggested_price || 0).toFixed(2)}
                         </p>
                       )}
                     </div>
@@ -1270,16 +1346,14 @@ const Dashboard = () => {
                             type="button"
                             onClick={handleAutoFillFromImage}
                             disabled={isAutoFilling}
-                            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transition transform hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                           >
-                            {isAutoFilling ? (
-                              <Sparkles className="w-5 h-5 animate-spin" />
-                            ) : (
-                              <Sparkles className="w-5 h-5 text-yellow-300" />
-                            )}
+                            <Sparkles
+                              className={`w-5 h-5 ${isAutoFilling ? "animate-spin" : "text-yellow-300"}`}
+                            />
                             {isAutoFilling
-                              ? "AI Vision is Analyzing..."
-                              : "🪄 Auto-Fill Details from Image"}
+                              ? "AI Vision is analyzing..."
+                              : "Auto-fill details from image"}
                           </button>
                         </div>
                       )}

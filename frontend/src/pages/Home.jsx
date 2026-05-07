@@ -7,8 +7,8 @@ import { useWishlist } from '../context/WishlistContext';
 import StatsSection from '../components/StatsSection';
 import ProductCard from '../components/ProductCard';
 import { Filter, SlidersHorizontal, ArrowRight, Star, Search, Sparkles, Gift, Heart, ShoppingBag, UserCheck } from 'lucide-react';
-// eslint-disable-next-line no-unused-vars
 import { motion } from 'framer-motion';
+import { apiUrl } from '../lib/api';
 
 // Dummy products for fallback
 const imagesForDummy = {
@@ -60,7 +60,7 @@ const Home = () => {
     const timer = setTimeout(async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-        const { data } = await axios.post('http://localhost:5000/api/ai/personalized-feed',
+        const { data } = await axios.post(apiUrl('/api/ai/personalized-feed'),
           { wishlistCategories, orderCategories: [] }, config);
         if (data.products?.length > 0) setForYouData(data);
       } catch { /* silent fail */ }
@@ -72,7 +72,7 @@ const Home = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const { data } = await axios.get('http://localhost:5000/api/products');
+        const { data } = await axios.get(apiUrl('/api/products'));
         // Use dummy data if API returns empty
         setProducts(data.length > 0 ? data : dummyProducts);
       } catch {
@@ -120,7 +120,7 @@ const Home = () => {
     setAiSearching(true);
     setAiSearchActive(true);
     try {
-      const { data } = await axios.post('http://localhost:5000/api/ai/search', { query: searchQuery });
+      const { data } = await axios.post(apiUrl('/api/ai/search'), { query: searchQuery });
       
       // semantic filtering
       let results = [...products];
@@ -204,7 +204,7 @@ const Home = () => {
                     onClick={async () => {
                       try {
                         const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                        const { data } = await axios.put('http://localhost:5000/api/users/profile', { role: 'artisan' }, config);
+                        const { data } = await axios.put(apiUrl('/api/users/profile'), { role: 'artisan' }, config);
                         const updatedUser = { ...data, token: user.token };
                         localStorage.setItem('userInfo', JSON.stringify(updatedUser));
                         window.location.href = '/dashboard';

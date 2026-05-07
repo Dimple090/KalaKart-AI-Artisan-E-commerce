@@ -6,7 +6,10 @@ const router = express.Router();
 router.post('/order', protect, createOrder);
 router.post('/verify', protect, verifyPayment);
 router.get('/config', (req, res) => {
-    res.json({ keyId: process.env.RAZORPAY_KEY_ID });
+    res.json({
+        keyId: process.env.RAZORPAY_KEY_ID || '',
+        mock: !process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_SECRET
+    });
 });
 
 module.exports = router;

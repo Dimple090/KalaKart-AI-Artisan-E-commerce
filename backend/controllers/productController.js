@@ -1,5 +1,17 @@
 const Product = require('../models/Product');
 
+const parseJsonArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (!value) return [];
+
+    try {
+        const parsed = JSON.parse(value);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+};
+
 // @desc    Fetch products by Artisan ID
 // @route   GET /api/products/artisan/:id
 // @access  Public
@@ -48,7 +60,7 @@ const getProductById = async (req, res, next) => {
 // @access  Private (Artisan) - Middleware needed
 const createProduct = async (req, res, next) => {
     // imageUrl from body is fallback if no file is provided
-    let { name, description, price, category, imageUrl, stock, ecoMaterial, ecoCarbon, ecoRecycling, isHandmadeVerified, handmadeAuthenticityScore, handmadeReasoning, handmadeKeyObservations, materialCost, laborCost, videoUrl, modelUrl } = req.body;
+    let { name, description, price, category, imageUrl, stock, ecoMaterial, ecoCarbon, ecoRecycling, isHandmadeVerified, handmadeAuthenticityScore, handmadeReasoning, handmadeKeyObservations, materialCost, laborCost, videoUrl, modelUrl } = req.body || {};
 
     // If multer processed a file, use the Cloudinary URL
     if (req.file) {
@@ -56,6 +68,11 @@ const createProduct = async (req, res, next) => {
     }
 
     try {
+        if (!['artisan', 'admin'].includes(req.user.role)) {
+            res.status(403);
+            throw new Error('Only artisans can create products');
+        }
+
         const product = new Product({
             name,
             description,
@@ -77,7 +94,7 @@ const createProduct = async (req, res, next) => {
             isHandmadeVerified: isHandmadeVerified === 'true' || isHandmadeVerified === true,
             handmadeAuthenticityScore: Number(handmadeAuthenticityScore) || 0,
             handmadeReasoning: handmadeReasoning || '',
-            handmadeKeyObservations: handmadeKeyObservations ? JSON.parse(handmadeKeyObservations) : [],
+            handmadeKeyObservations: parseJsonArray(handmadeKeyObservations),
             videoUrl: videoUrl || '',
             modelUrl: modelUrl || ''
         });
@@ -104,7 +121,7 @@ const generateDescription = async (req, res, next) => {
         }
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const prompt = `You are a professional copywriter for KalaKart, a marketplace for premium handmade artisan crafts.
         Generate a compelling, descriptive, and poetic product description for:
@@ -171,19 +188,19 @@ const updateProduct = async (req, res, next) => {
             throw new Error('User not authorized to update this product');
         }
 
-        product.name = name || product.name;
-        product.description = description || product.description;
-        product.price = price || product.price;
-        product.category = category || product.category;
-        product.stock = stock || product.stock;
+        product.name = name !== undefined ? name : product.name;
+        product.description = description !== undefined ? description : product.description;
+        product.price = price !== undefined ? Number(price) : product.price;
+        product.category = category !== undefined ? category : product.category;
+        product.stock = stock !== undefined ? Number(stock) : product.stock;
         product.videoUrl = videoUrl !== undefined ? videoUrl : product.videoUrl;
         product.modelUrl = modelUrl !== undefined ? modelUrl : product.modelUrl;
         
         if (ecoScore) {
             product.ecoScore = {
-                material: Number(ecoScore.material) || product.ecoScore.material,
-                carbon: Number(ecoScore.carbon) || product.ecoScore.carbon,
-                recycling: Number(ecoScore.recycling) || product.ecoScore.recycling,
+                material: ecoScore.material !== undefined ? Number(ecoScore.material) : product.ecoScore.material,
+                carbon: ecoScore.carbon !== undefined ? Number(ecoScore.carbon) : product.ecoScore.carbon,
+                recycling: ecoScore.recycling !== undefined ? Number(ecoScore.recycling) : product.ecoScore.recycling,
             };
         }
 

@@ -9,7 +9,10 @@ const authLimiter = process.env.NODE_ENV === 'test'
     : rateLimit({
         windowMs: 15 * 60 * 1000, // 15 minutes
         max: 10, // Limit each IP to 10 auth requests per `windowMs`
-        message: { message: 'Too many attempts from this IP, please try again after 15 minutes' }
+        standardHeaders: true,
+        legacyHeaders: false,
+        skipSuccessfulRequests: true,
+        message: { message: 'Too many failed attempts from this IP, please try again after 15 minutes' }
     });
 
 router.post('/register', authLimiter, registerUser);

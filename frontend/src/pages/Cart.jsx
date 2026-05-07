@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Trash2, Plus, Minus, ArrowRight, Lock, ShoppingBag, Leaf, Wind, Zap, Sparkles, ShoppingCart } from 'lucide-react';
 import axios from 'axios';
 import PaymentModal from '../components/PaymentModal';
+import { apiUrl } from '../lib/api';
 
 const Cart = () => {
     const { cartItems, addToCart, removeFromCart, clearCart } = useCart();
@@ -25,12 +26,12 @@ const Cart = () => {
         const timer = setTimeout(async () => {
             setBundleLoading(true);
             try {
-                const { data } = await axios.post('http://localhost:5000/api/ai/bundle-advisor', {
+                const { data } = await axios.post(apiUrl('/api/ai/bundle-advisor'), {
                     cartItems: cartItems.map(i => ({ _id: i._id, name: i.name, category: i.category }))
                 });
                 if (data.bundles?.length > 0) setBundleData(data);
             } catch {
-                // Silent fail — bundle suggestion is non-critical
+                // Silent fail: bundle suggestion is non-critical.
             } finally {
                 setBundleLoading(false);
             }
@@ -54,7 +55,7 @@ const Cart = () => {
                 recycling: Math.round(totals.recycling / cartItems.length)
             };
 
-            const { data } = await axios.post('http://localhost:5000/api/ai/impact', { scores: avgScores });
+            const { data } = await axios.post(apiUrl('/api/ai/impact'), { scores: avgScores });
             setEcoReport({ ...avgScores, message: data.message });
         } catch (error) {
             console.error("Impact calculation failed:", error);
@@ -96,7 +97,7 @@ const Cart = () => {
                                 <div className="flex-1 text-center sm:text-left">
                                     <h3 className="text-lg font-bold text-[#3E2723]">{item.name}</h3>
                                     <p className="text-sm text-[#8D6E63]">{item.category}</p>
-                                    <p className="text-[#3E2723] font-bold mt-1">₹{item.price}</p>
+                                    <p className="text-[#3E2723] font-bold mt-1">Rs. {item.price}</p>
                                 </div>
 
                                 <div className="flex items-center gap-4">
@@ -137,16 +138,16 @@ const Cart = () => {
                             <div className="space-y-4 mb-6">
                                 <div className="flex justify-between text-slate-600">
                                     <span>Subtotal</span>
-                                    <span>${totalPrice}</span>
+                                    <span>Rs. {totalPrice}</span>
                                 </div>
                                 <div className="flex justify-between text-slate-600">
                                     <span>Tax (18% GST estimate)</span>
-                                    <span>${tax}</span>
+                                    <span>Rs. {tax}</span>
                                 </div>
                                 <div className="flex justify-between text-slate-600">
                                     <span>Shipping</span>
                                     <span className={shipping === 0 ? "text-green-600 font-bold" : ""}>
-                                        {shipping === 0 ? "Free" : `$${shipping}`}
+                                        {shipping === 0 ? "Free" : `Rs. ${shipping}`}
                                     </span>
                                 </div>
                             </div>
@@ -154,7 +155,7 @@ const Cart = () => {
                             <div className="border-t border-gray-100 pt-4 mb-8">
                                 <div className="flex justify-between items-center">
                                     <span className="text-lg font-bold text-slate-900">Total</span>
-                                    <span className="text-3xl font-extrabold gradient-text">${finalTotal}</span>
+                                    <span className="text-3xl font-extrabold gradient-text">Rs. {finalTotal}</span>
                                 </div>
                             </div>
 
@@ -166,7 +167,7 @@ const Cart = () => {
                                         <h3 className="font-bold text-xs text-amber-800 uppercase tracking-wider">Complete the Collection</h3>
                                     </div>
                                     {bundleLoading && (
-                                        <p className="text-xs text-amber-700 animate-pulse">Finding the perfect pairings…</p>
+                                        <p className="text-xs text-amber-700 animate-pulse">Finding the perfect pairings...</p>
                                     )}
                                     {bundleData && !bundleLoading && (
                                         <>
@@ -182,7 +183,7 @@ const Cart = () => {
                                                             <p className="text-[10px] text-gray-500">{product.category}</p>
                                                         </div>
                                                         <div className="flex flex-col items-end gap-1.5">
-                                                            <span className="text-xs font-black text-[#3E2723]">${product.price}</span>
+                                                            <span className="text-xs font-black text-[#3E2723]">Rs. {product.price}</span>
                                                             <button
                                                                 onClick={() => addToCart(product)}
                                                                 className="flex items-center gap-1 bg-[#3E2723] text-white text-[9px] font-bold px-2 py-1 rounded-full hover:bg-[#5D4037] transition"

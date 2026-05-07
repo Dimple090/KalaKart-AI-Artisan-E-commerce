@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { X, Sparkles, Wand2, RefreshCw, Check, Download } from 'lucide-react';
 import axios from 'axios';
+import { apiUrl } from '../lib/api';
 
 const AvatarGenerator = ({ isOpen, onClose, user }) => {
     const [craftType, setCraftType] = useState('Ceramics');
     const [style, setStyle] = useState('Traditional Oil Painting');
     const [loading, setLoading] = useState(false);
-    const [generatedPrompt, setGeneratedPrompt] = useState('');
+    const [avatarPrompt, setAvatarPrompt] = useState('');
     const [avatarUrl, setAvatarUrl] = useState(null);
 
     const handleGenerate = async () => {
@@ -15,12 +16,12 @@ const AvatarGenerator = ({ isOpen, onClose, user }) => {
             const config = {
                 headers: { Authorization: `Bearer ${user.token}` }
             };
-            const { data } = await axios.post('http://localhost:5000/api/ai/generate-avatar-prompt', {
+            const { data } = await axios.post(apiUrl('/api/ai/generate-avatar-prompt'), {
                 craftType,
                 style
             }, config);
             
-            setGeneratedPrompt(data.prompt);
+            setAvatarPrompt(data.prompt);
             
             // In a real app, we would send this prompt to an image gen API like DALL-E or Midjourney.
             // For this demo, we'll use a high-quality placeholder that matches the prompt's theme.
@@ -155,7 +156,7 @@ const AvatarGenerator = ({ isOpen, onClose, user }) => {
                                 <Sparkles className="absolute inset-0 m-auto w-8 h-8 text-amber-500 animate-pulse" />
                             </div>
                             <h3 className="mt-8 text-xl font-black text-[#3E2723] uppercase tracking-tighter">Painting with AI...</h3>
-                            <p className="mt-2 text-sm text-gray-600 italic">"Imagining a {style.toLowerCase()} world for a {craftType.toLowerCase()} master."</p>
+                            <p className="mt-2 text-sm text-gray-600 italic">"{avatarPrompt || `Imagining a ${style.toLowerCase()} world for a ${craftType.toLowerCase()} master.`}"</p>
                         </div>
                     )}
                 </div>

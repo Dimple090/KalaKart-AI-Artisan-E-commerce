@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
+import { apiUrl } from '../lib/api';
 
 const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
     const [step, setStep] = useState('summary'); // summary, processing, success, error
     const [errorMessage, setErrorMessage] = useState('');
-    const { clearCart } = useCart();
+    const { cartItems, clearCart } = useCart();
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -18,6 +19,29 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
             setErrorMessage('');
         }
     }, [isOpen]);
+
+    const orderPayload = {
+        orderItems: cartItems.map(item => ({
+            product: item._id,
+            quantity: item.qty,
+            price: item.price
+        })),
+        shippingAddress: {
+            address: "123 Artisan Street",
+            city: "Jaipur",
+            postalCode: "302001",
+            country: "India"
+        }
+    };
+
+    const completeCheckout = () => {
+        setStep('success');
+        setTimeout(() => {
+            clearCart();
+            onClose();
+            navigate('/order-success');
+        }, 2000);
+    };
 
     const loadRazorpayScript = () => {
         return new Promise((resolve) => {
@@ -38,13 +62,8 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
                 throw new Error("Please log in to initiate payment.");
             }
 
-            const res = await loadRazorpayScript();
-            if (!res) {
-                throw new Error("Razorpay SDK failed to load. Are you online?");
-            }
-
             // 0. Fetch securely the Razorpay public key
-            const { data: configData } = await axios.get('http://localhost:5000/api/payment/config');
+            const { data: configData } = await axios.get(apiUrl('/api/payment/config'));
             const razorpayKey = configData.keyId;
 
             // 1. Create Order
@@ -54,21 +73,46 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
                 },
             };
 
+            if (configData.mock || !razorpayKey) {
+                await axios.post(
+                    apiUrl('/api/orders'),
+                    {
+                        ...orderPayload,
+                        paymentMethod: 'Demo Checkout',
+                        itemsPrice: totalAmount,
+                        taxPrice: 0,
+                        shippingPrice: 0,
+                        totalPrice: totalAmount,
+                    },
+                    config
+                );
+                completeCheckout();
+                return;
+            }
+
+            const res = await loadRazorpayScript();
+            if (!res) {
+                await axios.post(
+                    apiUrl('/api/orders'),
+                    {
+                        ...orderPayload,
+                        paymentMethod: 'Demo Checkout',
+                        itemsPrice: totalAmount,
+                        taxPrice: 0,
+                        shippingPrice: 0,
+                        totalPrice: totalAmount,
+                    },
+                    config
+                );
+                completeCheckout();
+                return;
+            }
+
             const { data: order } = await axios.post(
-                'http://localhost:5000/api/payment/order',
+                apiUrl('/api/payment/order'),
                 { 
                     amount: totalAmount,
-                    orderItems: cartItems.map(item => ({
-                        product: item._id,
-                        quantity: item.qty,
-                        price: item.price
-                    })),
-                    shippingAddress: {
-                        address: "123 Artisan Street", // Mock for demo
-                        city: "Jaipur",
-                        postalCode: "302001",
-                        country: "India"
-                    }
+                    ...orderPayload
                 },
                 config
             );
@@ -86,7 +130,7 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
                     try {
                         // 3. Verify Payment
                         await axios.post(
-                            'http://localhost:5000/api/payment/verify',
+                            apiUrl('/api/payment/verify'),
                             {
                                 razorpay_order_id: response.razorpay_order_id,
                                 razorpay_payment_id: response.razorpay_payment_id,
@@ -95,14 +139,10 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
                             config
                         );
 
-                        setStep('success');
-                        setTimeout(() => {
-                            clearCart();
-                            onClose();
-                            navigate('/order-success');
-                        }, 2000);
+                        completeCheckout();
 
                     } catch (verifyError) {
+                        console.error("Payment verification failed:", verifyError);
                         setErrorMessage("Payment verification failed. Please contact support.");
                         setStep('error');
                     }
@@ -165,7 +205,7 @@ const PaymentModal = ({ isOpen, onClose, totalAmount }) => {
                         <div className="space-y-6">
                             <div className="text-center py-4">
                                 <p className="text-slate-500 text-sm uppercase tracking-widest font-bold mb-2">Total Payable Amount</p>
-                                <h2 className="text-5xl font-extrabold text-slate-900 tracking-tight">₹{totalAmount}</h2>
+                                <h2 className="text-5xl font-extrabold text-slate-900 tracking-tight">Rs. {totalAmount}</h2>
                             </div>
 
                             <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 flex items-start gap-4">

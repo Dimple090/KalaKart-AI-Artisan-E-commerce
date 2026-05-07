@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Trash2, Clock, BookOpen, Scissors, ChevronRight, Bookmark } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 
 const SavedIdeas = () => {
     const [savedIdeas, setSavedIdeas] = useState([]);
@@ -17,7 +18,7 @@ const SavedIdeas = () => {
             if (!user) return;
             try {
                 const config = { headers: { Authorization: `Bearer ${user.token}` } };
-                const { data } = await axios.get('http://localhost:5000/api/ai/saved-ideas', config);
+                const { data } = await axios.get(apiUrl('/api/ai/saved-ideas'), config);
                 setSavedIdeas(data);
             } catch (err) {
                 console.error('Error fetching saved ideas:', err);
@@ -36,7 +37,7 @@ const SavedIdeas = () => {
 
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            await axios.delete(`http://localhost:5000/api/ai/saved-ideas/${id}`, config);
+            await axios.delete(apiUrl(`/api/ai/saved-ideas/${id}`), config);
             setSavedIdeas(savedIdeas.filter(idea => idea._id !== id));
             if (expandedIdea?._id === id) setExpandedIdea(null);
         } catch (err) {

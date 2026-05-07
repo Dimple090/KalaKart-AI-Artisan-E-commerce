@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Gift, Sparkles, Send, ArrowRight, Heart, ShoppingCart } from 'lucide-react';
+import { useState } from 'react';
+import { Gift, Sparkles, Send, ArrowRight } from 'lucide-react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiUrl } from '../lib/api';
 
 const GiftFinder = () => {
     const [persona, setPersona] = useState('');
@@ -16,7 +17,7 @@ const GiftFinder = () => {
         setLoading(true);
         setResults(null);
         try {
-            const { data } = await axios.post('http://localhost:5000/api/ai/gift-finder', { persona });
+            const { data } = await axios.post(apiUrl('/api/ai/gift-finder'), { persona });
             setResults(data);
         } catch (error) {
             console.error("Gift finder error:", error);

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { X, Upload, Save, MapPin, Instagram, Youtube, Globe, AlertCircle } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 const EditProfileModal = ({ isOpen, onClose, currentProfile, onProfileUpdate }) => {
     const { user, login } = useAuth(); // Need login to update Context user data
@@ -89,7 +90,7 @@ const EditProfileModal = ({ isOpen, onClose, currentProfile, onProfileUpdate }) 
         setError(null);
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            const { data } = await axios.post('http://localhost:5000/api/ai/artisan-story', {
+            const { data } = await axios.post(apiUrl('/api/ai/artisan-story'), {
                 name: user.name,
                 categories,
                 location: { city, state: stateLoc, country }
@@ -122,7 +123,7 @@ const EditProfileModal = ({ isOpen, onClose, currentProfile, onProfileUpdate }) 
                 craftStory
             };
 
-            const { data: updatedUser } = await axios.put('http://localhost:5000/api/users/profile', textData, config);
+            const { data: updatedUser } = await axios.put(apiUrl('/api/users/profile'), textData, config);
 
             // 2. Upload new portfolio images if any
             let finalUser = updatedUser;
@@ -139,7 +140,7 @@ const EditProfileModal = ({ isOpen, onClose, currentProfile, onProfileUpdate }) 
                     }
                 };
 
-                const { data: portfolioData } = await axios.post('http://localhost:5000/api/users/profile/portfolio', formData, uploadConfig);
+                const { data: portfolioData } = await axios.post(apiUrl('/api/users/profile/portfolio'), formData, uploadConfig);
                 finalUser.portfolio = portfolioData.portfolio;
             }
 

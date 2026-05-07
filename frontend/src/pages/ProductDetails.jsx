@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useCart } from '../context/CartContext';
@@ -8,6 +8,7 @@ import ReviewSection from '../components/ReviewSection';
 import ModelViewer from '../components/ModelViewer';
 import TransparencyWidget from '../components/TransparencyWidget';
 import CommissionModal from '../components/CommissionModal';
+import { apiUrl } from '../lib/api';
 
 const ProductDetails = () => {
     const { id } = useParams();
@@ -36,7 +37,7 @@ const ProductDetails = () => {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                const { data } = await axios.get(`http://localhost:5000/api/products/${id}`);
+                const { data } = await axios.get(apiUrl(`/api/products/${id}`));
                 setProduct(data);
                 setComments(data.comments || []);
                 setLikes(data.likes || []);
@@ -50,7 +51,7 @@ const ProductDetails = () => {
                 }
                 // Fetch AI Recommendations
                 try {
-                    const aiRes = await axios.get(`http://localhost:5000/api/ai/recommendations/${id}`);
+                    const aiRes = await axios.get(apiUrl(`/api/ai/recommendations/${id}`));
                     setRecommendations(aiRes.data.recommendations || []);
                 } catch (aiErr) {
                     console.error("AI recommendations failed silently", aiErr);
@@ -78,7 +79,7 @@ const ProductDetails = () => {
             }
         };
         fetchProduct();
-    }, [id]);
+    }, [id, user]);
 
     const handleLikeToggle = async () => {
         if (!user) {
@@ -88,10 +89,10 @@ const ProductDetails = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             if (likes.includes(user._id)) {
-                const { data } = await axios.post(`http://localhost:5000/api/products/${id}/unlike`, {}, config);
+                const { data } = await axios.post(apiUrl(`/api/products/${id}/unlike`), {}, config);
                 setLikes(data);
             } else {
-                const { data } = await axios.post(`http://localhost:5000/api/products/${id}/like`, {}, config);
+                const { data } = await axios.post(apiUrl(`/api/products/${id}/like`), {}, config);
                 setLikes(data);
             }
         } catch (error) {
@@ -109,11 +110,11 @@ const ProductDetails = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
             if (isFollowing) {
-                await axios.post(`http://localhost:5000/api/users/${product.artisan._id}/unfollow`, {}, config);
+                await axios.post(apiUrl(`/api/users/${product.artisan._id}/unfollow`), {}, config);
                 setIsFollowing(false);
                 setFollowersCount(prev => prev - 1);
             } else {
-                await axios.post(`http://localhost:5000/api/users/${product.artisan._id}/follow`, {}, config);
+                await axios.post(apiUrl(`/api/users/${product.artisan._id}/follow`), {}, config);
                 setIsFollowing(true);
                 setFollowersCount(prev => prev + 1);
             }
@@ -128,11 +129,11 @@ const ProductDetails = () => {
     const [stylingAdvice, setStylingAdvice] = useState(null);
     const [stylingLoading, setStylingLoading] = useState(false);
 
-    const fetchStylingAdvice = async (p) => {
+    const fetchStylingAdvice = useCallback(async (p) => {
         if (!p) return;
         setStylingLoading(true);
         try {
-            const { data } = await axios.post(`http://localhost:5000/api/ai/styling-advice/${id}`, {
+            const { data } = await axios.post(apiUrl(`/api/ai/styling-advice/${id}`), {
                 productName: p.name,
                 description: p.description,
                 category: p.category,
@@ -144,19 +145,19 @@ const ProductDetails = () => {
         } finally {
             setStylingLoading(false);
         }
-    };
+    }, [id]);
 
     useEffect(() => {
         if (product) {
             fetchStylingAdvice(product);
         }
-    }, [product?._id]);
+    }, [product, fetchStylingAdvice]);
 
     const handleRevealStory = async () => {
         if (artisanStory) return; // Already generated
         setGeneratingStory(true);
         try {
-            const { data } = await axios.post('http://localhost:5000/api/ai/story-behind-craft', {
+            const { data } = await axios.post(apiUrl('/api/ai/story-behind-craft'), {
                 product: product.name,
                 description: product.description,
                 artisanName: product.artisan?.name,
@@ -203,7 +204,7 @@ const ProductDetails = () => {
                     Authorization: `Bearer ${user.token}`
                 },
             };
-            await axios.delete(`http://localhost:5000/api/products/${id}`, config);
+            await axios.delete(apiUrl(`/api/products/${id}`), config);
             navigate('/');
         } catch (error) {
             console.error("Delete failed:", error);
@@ -220,7 +221,7 @@ const ProductDetails = () => {
         if (!commentText.trim()) return;
         try {
             const config = { headers: { Authorization: `Bearer ${user.token}` } };
-            const { data } = await axios.post(`http://localhost:5000/api/products/${id}/comment`, { text: commentText }, config);
+            const { data } = await axios.post(apiUrl(`/api/products/${id}/comment`), { text: commentText }, config);
             setComments(data);
             setCommentText("");
         } catch (error) {
@@ -235,7 +236,7 @@ const ProductDetails = () => {
         setQaQuestion('');
         setQaLoading(true);
         try {
-            const { data } = await axios.post('http://localhost:5000/api/ai/product-qa', {
+            const { data } = await axios.post(apiUrl('/api/ai/product-qa'), {
                 question: questionText,
                 productName: product?.name,
                 description: product?.description,
@@ -254,15 +255,17 @@ const ProductDetails = () => {
         }
     };
 
-    const mediaItems = [];
-    if (product) {
-        if (product.imageUrl) mediaItems.push({ type: 'image', url: product.imageUrl });
+    const mediaItems = useMemo(() => {
+        const items = [];
+        if (!product) return items;
+        if (product.imageUrl) items.push({ type: 'image', url: product.imageUrl });
         if (product.images && product.images.length > 0) {
-            product.images.forEach(img => mediaItems.push({ type: 'image', url: img }));
+            product.images.forEach(img => items.push({ type: 'image', url: img }));
         }
-        if (product.videoUrl) mediaItems.push({ type: 'video', url: product.videoUrl });
-        if (product.modelUrl) mediaItems.push({ type: '3d', url: product.modelUrl });
-    }
+        if (product.videoUrl) items.push({ type: 'video', url: product.videoUrl });
+        if (product.modelUrl) items.push({ type: '3d', url: product.modelUrl });
+        return items;
+    }, [product]);
 
     useEffect(() => {
         const queryParams = new URLSearchParams(location.search);
@@ -272,7 +275,7 @@ const ProductDetails = () => {
                 setActiveMedia(threeDIndex);
             }
         }
-    }, [location.search, mediaItems.length]);
+    }, [location.search, mediaItems]);
 
     if (loading) return <div className="text-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div></div>;
     if (!product) return <div className="text-center py-20">Product not found</div>;
@@ -387,6 +390,11 @@ const ProductDetails = () => {
                             <span>•</span>
                             <div className="flex items-center gap-2">
                                 <span className="font-bold">By {product.artisan?.name || "Verified Artisan"}</span>
+                                {product.artisan && (
+                                    <span className="text-[11px] font-bold text-[#8D6E63] bg-[#EFEBE9] px-2 py-0.5 rounded-full">
+                                        {followersCount} followers
+                                    </span>
+                                )}
                                 {product.artisan && product.artisan._id !== user?._id && (
                                     <button
                                         onClick={handleFollowToggle}
@@ -492,6 +500,12 @@ const ProductDetails = () => {
                     )}
 
                     {/* AI Stylist Tip Section */}
+                    {stylingLoading && !stylingAdvice && (
+                        <div className="mt-8 bg-indigo-50 border border-indigo-100 rounded-2xl p-5 text-indigo-700 text-sm font-bold flex items-center gap-3">
+                            <Sparkles className="w-4 h-4 animate-spin" />
+                            AI stylist is preparing a pairing tip...
+                        </div>
+                    )}
                     {stylingAdvice && (
                         <div className="mt-8 bg-indigo-50 border border-indigo-100 rounded-[2rem] p-6 shadow-sm relative overflow-hidden group">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-200/30 rounded-full blur-2xl -mr-8 -mt-8"></div>

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { MapPin, Star, Award, ChevronLeft, Link as LinkIcon, Instagram, Youtube, Globe, Edit2 } from 'lucide-react';
 import EditProfileModal from '../components/EditProfileModal';
+import { apiUrl } from '../lib/api';
 
 const Profile = () => {
     const { id } = useParams();
@@ -19,11 +20,11 @@ const Profile = () => {
         const fetchProfileData = async () => {
             try {
                 // Fetch Profile
-                const { data: profileData } = await axios.get(`http://localhost:5000/api/users/${id}`);
+                const { data: profileData } = await axios.get(apiUrl(`/api/users/${id}`));
                 setProfile(profileData);
 
                 // Fetch Artisan's Products
-                const { data: productsData } = await axios.get(`http://localhost:5000/api/products/artisan/${id}`);
+                const { data: productsData } = await axios.get(apiUrl(`/api/products/artisan/${id}`));
                 setProducts(productsData);
 
                 if (currentUser) {
@@ -48,10 +49,10 @@ const Profile = () => {
         try {
             const config = { headers: { Authorization: `Bearer ${currentUser.token}` } };
             if (isFollowing) {
-                await axios.post(`http://localhost:5000/api/users/${id}/unfollow`, {}, config);
+                await axios.post(apiUrl(`/api/users/${id}/unfollow`), {}, config);
                 setIsFollowing(false);
             } else {
-                await axios.post(`http://localhost:5000/api/users/${id}/follow`, {}, config);
+                await axios.post(apiUrl(`/api/users/${id}/follow`), {}, config);
                 setIsFollowing(true);
             }
         } catch (error) {
